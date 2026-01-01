@@ -1,56 +1,84 @@
 import streamlit as st
 from datetime import datetime, timedelta
+import pytz # Para la hora exacta
+
+# Configuración de página con fondo azul mediante CSS personalizado
+st.set_page_config(page_title="Deepal S07 Digital Monitor", page_icon="⚡", layout="centered")
+
+# CSS para fondo azul, letra blanca y tipografía digital
+st.markdown("""
+    <style>
+    .stApp {
+        background-color: #003366;
+        color: white;
+    }
+    @font-face {
+        font-family: 'Digital';
+        src: url('https://fonts.cdnfonts.com/s/14101/digital-7.woff') format('woff');
+    }
+    .digital-font {
+        font-family: 'Digital', sans-serif;
+        font-size: 60px;
+        color: #00FF00;
+        text-align: center;
+    }
+    h1, h2, h3, p, span {
+        color: white !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+st.title("⚡ Deepal S07 Digital Monitor")
+
+# --- VALORES FIJOS ---
+BATTERY_CAPACITY = 31.87  # kWh fijo
+FIXED_AMPERAGE = 22.6    # A fijo
+
+# Zona horaria (Ajustada a UTC-5, común en nuestra región)
+tz = pytz.timezone('America/Bogota') 
+hora_actual = datetime.now(tz)
+
+with st.container():
+    st.subheader("Datos de Carga")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        voltaje = st.number_input("Voltaje (V)", value=220)
+        st.write(f"**Batería:** {BATTERY_CAPACITY} kWh")
+    
+    with col2:
+        actual_pct = st.slider("Carga Actual (%)", 0, 100, 20)
+        target_pct = st.slider("Carga Objetivo (%)", 0, 100, 80)
+
+# --- CÁLCULOS ---
+if st.button("🚀 INICIAR CÁLCULO"):
+    if actual_pct >= target_pct:
+        st.error("La carga actual es mayor al objetivo.")
+    else:
+        # P = V * I / 1000
+        potencia_kw = (voltaje * FIXED_AMPERAGE) / 1000
+        energia_necesaria = BATTERY_CAPACITY * (target_pct - actual_pct) / 100
+        # Tiempo con 90% eficiencia
+        tiempo_horas = energia_necesaria / (potencia_kw * 0.9)
+        
+        # Hora de finalización
+        hora_fin = datetime.now(tz) + timedelta(hours=tiempo_horas)
+        
+        # Formato de tiempo
+        h = int(tiempo_horas)
+        m = int((tiempo_horas - h) * 60)
+
+        st.divider()
+        
+        # RESULTADOS CON ESTILO DIGITAL
+        st.markdown("### HORA ESTIMADA DE FINALIZACIÓN:")
+        st.markdown(f'<p class="digital-font">{hora_fin.strftime("%H:%M %p")}</p>', unsafe_allow_html=True)
+        
+        st.markdown("### TIEMPO RESTANTE DE CARGA:")
+        st.markdown(f'<p class="digital-font">{h}h {m}m</p>', unsafe_allow_html=True)
+
+        st.info(f"Potencia de carga: {potencia_kw:.2f} kW | Energía a recuperar: {energia_necesaria:.2f} kWh")import streamlit as st
+from datetime import datetime, timedelta
 import base64
 
-st.set_page_config(page_title="Deepal S07 Monitor", page_icon="⚡")
-st.title("🚗 Deepal S07: Monitor de Carga")
 
-# --- SONIDO DE ALARMA ---
-def play_alarm():
-    # Sonido de campana profesional
-    audio_url = "https://www.soundjay.com/buttons/beep-01a.mp3"
-    audio_html = f"""
-        <audio autoplay>
-            <source src="{audio_url}" type="audio/mpeg">
-        </audio>
-    """
-    st.components.v1.html(audio_html, height=0)
-
-# --- CONFIGURACIÓN Y ENTRADAS ---
-with st.sidebar:
-    st.header("⚙️ Ajustes del Vehículo")
-    capacidad = st.number_input("Capacidad Batería (kWh)", value=66.8)
-    # Acepta decimales con step=0.1
-    amperaje = st.number_input("Amperaje (A)", value=32.0, step=0.1, format="%.1f")
-
-col1, col2 = st.columns(2)
-with col1:
-    voltaje = st.number_input("Voltaje (V)", value=220)
-    actual = st.slider("Carga Actual (%)", 0, 100, 20)
-with col2:
-    objetivo = st.slider("Carga Objetivo (%)", 0, 100, 80)
-    st.info(f"🕒 Hora actual: {datetime.now().strftime('%H:%M')}")
-
-# --- CÁLCULO ---
-if st.button("🚀 INICIAR MONITOR"):
-    if actual >= objetivo:
-        st.error("¡El objetivo debe ser mayor al actual!")
-    else:
-        potencia = (voltaje * amperaje) / 1000
-        energia = capacidad * (objetivo - actual) / 100
-        tiempo_decimal = energia / (potencia * 0.9) # 90% eficiencia
-        
-        # Hora de fin
-        hora_fin = datetime.now() + timedelta(hours=tiempo_decimal)
-        
-        st.divider()
-        st.balloons()
-        st.success(f"### ✅ Carga lista a las: {hora_fin.strftime('%H:%M %p')}")
-        
-        c1, c2 = st.columns(2)
-        c1.metric("Tiempo restante", f"{int(tiempo_decimal)}h {int((tiempo_decimal%1)*60)}m")
-        c2.metric("Potencia Real", f"{potencia:.2f} kW")
-        
-        # Alarma visual y sonora
-        st.warning(f"🔔 Desconecta a las {hora_fin.strftime('%H:%M')}")
-        play_alarm()
