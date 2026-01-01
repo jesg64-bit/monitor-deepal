@@ -77,8 +77,6 @@ if st.button("🚀 INICIAR CÁLCULO"):
         st.markdown("### TIEMPO RESTANTE DE CARGA:")
         st.markdown(f'<p class="digital-font">{h}h {m}m</p>', unsafe_allow_html=True)
 
-        st.info(f"Potencia de carga: {potencia_kw:.2f} kW | Energía a recuperar: {energia_necesaria:.2f} kWh")import streamlit as st
-from datetime import datetime, timedelta
-import base64
+        st.info(f"Potencia de carga: {potencia_kw:.2f} kW | Energía a recuperar: {energia_necesaria:.2f} kWh")
 
 
